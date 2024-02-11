@@ -3,7 +3,6 @@
 
 ## 1. Installation Setup
 
-### To install softwares
 Please run the following commands to install necessary packages.
 For more details on Pytorch Geometric please refer to install the PyTorch Geometric packages following the instructions from [here.](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html)
 
