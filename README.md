@@ -35,4 +35,4 @@ python GraphGini.py
 
 
 ## 4. Baselines
-#we used code provided by "https://github.com/michaelweihaosong/GUIDE.git" to run all baselines
+We used code provided by "https://github.com/michaelweihaosong/GUIDE.git" to run all baselines
