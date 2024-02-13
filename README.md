@@ -28,7 +28,7 @@ We ran our experiments on two high-stakes datasets: credit and income and also a
 ## 3. Use bellow commands to run algorithms
 ```bash
 cd code
-python GraphGini.py 
+python GraphGini.py  --model [gcn/gin/jk] --dataset [DATASET_NAME] --epochs [number_of_epochs]
 ```
 
 
