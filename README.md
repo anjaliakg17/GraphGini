@@ -33,7 +33,7 @@ python GraphGini.py  --model [gcn/gin/jk] --dataset [DATASET_NAME] --epochs [num
 For running GraphGini without GradNorm i.e (\beta_1 = 1,  \beta_2 = alpha,  \beta_3 = beta) 
 ```bash
 cd code
-python GraphGin_WGNi.py  - --model gcn --dataset credit --alpha 6e-6 --beta 2
+python GraphGini_WGN.py  - --model gcn --dataset credit --alpha 6e-6 --beta 2
 ```
 ## 4. Baselines
 We used code provided by "https://github.com/michaelweihaosong/GUIDE.git" to run all baselines
