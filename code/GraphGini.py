@@ -1,3 +1,4 @@
+#GraphGini with GradNorm 
 import torch
 torch.cuda.empty_cache()
 import torch.nn.functional as F
@@ -121,6 +122,7 @@ except FileNotFoundError:
 sim_edge_index, sim_edge_weight = convert.from_scipy_sparse_matrix(sim)
 sim_edge_weight = sim_edge_weight.type(torch.FloatTensor)
 #-----------------------------------------------------------------------------------------------------
+# To comapare with baseline use unnormalized Laplacian 
 lap = laplacian(sim,  normed=True)
 #lap = laplacian(sim)
 print(f"Similarity matrix nonzero entries: {torch.count_nonzero(sim_edge_weight)}")
@@ -220,8 +222,8 @@ for epoch in range(args.initialize_training_epochs+1):
 #--------------------------------- Training GUIDE With GradNorm ------------------------------------------------------------------------------
 iters = 0
 layer = ifgModel.fc
-lr2 = 0.001
-alpha2 = 0.12
+lr2 = 0.001 # 0.01   
+alpha2 = 0.12 # 0.50, 4.5, 8.0  
 log_weights = []
 log_loss = []
 log = True
@@ -243,57 +245,39 @@ for epoch in range(args.epochs+1):
     #_____________GradNorm Start_____________________
     loss_guide_train_list = [loss_label_guide_train, ifair_loss, ifg_loss]
     loss_guide_train_list = torch.stack(loss_guide_train_list)
-    # initialization
     if iters == 0:
-    # init weights
         weights = torch.ones_like(loss_guide_train_list)
         weights =   weights.to(device)
         weights = torch.nn.Parameter(weights)
-        T = weights.sum().detach() # sum of weights
+        T = weights.sum().detach()
         optimizer2 = torch.optim.Adam([weights], lr=lr2)
-        # set L(0)
         l0 = loss_guide_train_list.detach()
-    # compute the weighted loss
     weighted_loss = weights @ loss_guide_train_list
-    # clear gradients of network
     ifgOptimizer.zero_grad()
-    # backward pass for weigthted task loss
     weighted_loss.backward(retain_graph=True)
-    
-    # compute the L2 norm of the gradients for each task
     gw = []
     for i in range(len(loss_guide_train_list)):
         dl = torch.autograd.grad(weights[i]*loss_guide_train_list[i], layer.parameters(), retain_graph=True, create_graph=True)[0]
         gw.append(torch.norm(dl))
     gw = torch.stack(gw)
-    # compute loss ratio per task
     loss_ratio = loss_guide_train_list.detach() / l0
-    # compute the relative inverseing rate per task
     rt = loss_ratio / loss_ratio.mean()
-    # compute the average gradient norm
     gw_avg = gw.mean().detach()
-    # compute the GradNorm loss
     constant = (gw_avg * rt ** alpha2).detach()
     gradnorm_loss = torch.abs(gw - constant).sum()
-    # clear gradients of weights
     optimizer2.zero_grad()
-    # backward pass for GradNorm
     gradnorm_loss.backward()
-    # log weights and loss
-    if log:
-        # weight for each task
-        log_weights.append(weights.detach().cpu().numpy().copy())
-        # task normalized loss
-        log_loss.append(loss_ratio.detach().cpu().numpy().copy())
+    # if log:
+    #     # weight for each task
+    #     log_weights.append(weights.detach().cpu().numpy().copy())
+    #     # task normalized loss
+    #     log_loss.append(loss_ratio.detach().cpu().numpy().copy())
     # update model weights
     ifgOptimizer.step()
-    # update loss weights
     optimizer2.step()
-    # renormalize weights
     weights = (weights / weights.sum() * T).detach()
     weights = torch.nn.Parameter(weights)
     optimizer2 = torch.optim.Adam([weights], lr=lr2)
-    # update iters
     iters += 1
     #--------------------------  GradNorm End-------------------------
     ################################Validation################################
@@ -372,7 +356,6 @@ print(f'Total Individual Unfairness: {individual_unfairness}')
 print(f'Individual Unfairness for Group 1: {f_u1}')
 print(f'Individual Unfairness for Group 2: {f_u2}')
 print(f'GDIF: {GDIF}')
-
 #############################################################################
 df = features[idx_test].cpu()
 output_prob = torch.sigmoid(output)
@@ -391,19 +374,13 @@ labels_kmeans = kmeanModel.labels_
 
 print("cluster, class0Gini, Class1Gini, AllClassGini")
 for i in range(numCluster):
-    ##print(df[labels_kmeans==i].shape)
     output_cluster = output_prob.detach().cpu().numpy()[idx_test.cpu()][labels_kmeans==i]
     labels_cluster = labels.cpu().numpy()[idx_test.cpu()][labels_kmeans==i]
-    #print(output_cluster.shape, labels_cluster.shape)
     idx = np.where([labels_cluster==0])[1]
-    output_gini_torch_0 = output_cluster[idx] #- np.min(output_cluster[idx])
-    #print(gini_np(output_gini_torch_0))
+    output_gini_torch_0 = output_cluster[idx] 
     idx = np.where([labels_cluster==1])[1]
-    output_gini_torch_1 = output_cluster[idx] #- np.min(output_cluster[idx])
-
+    output_gini_torch_1 = output_cluster[idx]
     print(i,", ", gini_np(output_gini_torch_0),", ",gini_np(output_gini_torch_1), ", ",gini_np(output_cluster))
-    #print(i, gini_np(output_gini_torch_0),gini_np(output_gini_torch_1), gini_np(output_cluster))
-
 
 output_vanilla = model(features, edge_index)
 output_vanilla_prob = torch.sigmoid(output_vanilla)

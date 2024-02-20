@@ -30,9 +30,10 @@ We ran our experiments on two high-stakes datasets: credit and income and also a
 cd code
 python GraphGini.py  --model [gcn/gin/jk] --dataset [DATASET_NAME] --epochs [number_of_epochs]
 ```
-
-
-
-
+For running GraphGini without GradNorm i.e (\beta_1 = 1,  \beta_2 = alpha,  \beta_3 = beta) 
+```bash
+cd code
+python GraphGin_WGNi.py  - --model gcn --dataset credit --alpha 6e-6 --beta 2
+```
 ## 4. Baselines
 We used code provided by "https://github.com/michaelweihaosong/GUIDE.git" to run all baselines
